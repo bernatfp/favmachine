@@ -27,7 +27,7 @@ Dependencies: Go. *If you don't have Go installed on your computer, [start here]
 
 By now, your configuration file should look like this:
 
-´´´json
+```
 {
 	"APIKey": "your-api-key",
 	"APISecret": "your-api-secret",
@@ -35,7 +35,7 @@ By now, your configuration file should look like this:
 	"accessTokenSecret": "your-access-token-secret",
 	"words": "some, comma, separated, words, or even phrases"
 }
-´´´
+```
 
 ##Usage
 
