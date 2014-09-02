@@ -1,11 +1,11 @@
-package main 
+package main
 
 import (
-	"fmt"
-	"strings"
 	"encoding/json"
-	"log"
+	"fmt"
 	"github.com/mrjones/oauth"
+	"log"
+	"strings"
 )
 
 type ErrJsonArr struct {
@@ -13,7 +13,7 @@ type ErrJsonArr struct {
 }
 
 type ErrJson struct {
-	Code int
+	Code    int
 	Message string
 }
 
@@ -34,7 +34,7 @@ func parseErrCode(err error) int {
 		fmt.Println("Error unmarshal: ", err)
 	}
 
-	return errJsonArr.Errors[0].Code		
+	return errJsonArr.Errors[0].Code
 }
 
 func favTweet(tweet *Tweet, client *oauth.Consumer, favch chan<- int, errch chan<- int) {
@@ -43,40 +43,40 @@ func favTweet(tweet *Tweet, client *oauth.Consumer, favch chan<- int, errch chan
 	if err != nil {
 		log.Println("Error sending FAV ", err)
 		switch code := parseErrCode(err); code {
-			//Already FAV
-			case 139:
-				favch<- 2
-			//Not found
-			case 34:
-				favch<- 3
-			//No JSON error sent by Twitter 
-			//It's expected to be an HTTP 429 response code, which means we've exceeded the limit
-			case -1:
-				favch<- -1
-				errch<- -1
-			//Unknown error
-			default:
-				favch<- code
-				errch<- -1
+		//Already FAV
+		case 139:
+			favch <- 2
+		//Not found
+		case 34:
+			favch <- 3
+		//No JSON error sent by Twitter
+		//It's expected to be an HTTP 429 response code, which means we've exceeded the limit
+		case -1:
+			favch <- -1
+			errch <- -1
+		//Unknown error
+		default:
+			favch <- code
+			errch <- -1
 		}
 
 		log.Println("Fav failed: ", tweet.Text)
 
-	}else{
+	} else {
 		//OK
-		favch<- 1
+		favch <- 1
 		log.Println("Fav sent: ", tweet.Text)
 	}
 	defer resp.Body.Close()
-	
+
 }
 
 //This function checks stuff before creating a fav
 func tweetHandler(tweet *Tweet, client *oauth.Consumer, favch chan<- int, errch chan<- int, canFav bool) {
-	
+
 	//Send fav if it's not blocked by API
-	if canFav{
-		//Filter if it is a RT because we might have already favourited it yet 
+	if canFav {
+		//Filter if it is a RT because we might have already favourited it yet
 		if len(tweet.RT.Id) > 0 {
 			return
 		}

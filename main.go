@@ -3,19 +3,19 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"log"
 	"encoding/json"
-	"sync"
 	"flag"
 	"github.com/mrjones/oauth"
+	"log"
+	"sync"
 )
 
 //Tweet structure
 type Tweet struct {
-	Id string `json:"id_str"`
+	Id   string `json:"id_str"`
 	Text string
 	User UserTwitter `json:"user"`
-	RT RetweetData `json:"retweeted_status"`
+	RT   RetweetData `json:"retweeted_status"`
 }
 
 type UserTwitter struct {
@@ -57,7 +57,7 @@ func main() {
 
 	//Create error reporting channel
 	errch := make(chan int)
-	
+
 	//Flag that indicates if favorites can be sent at a certain moment
 	var canFav bool = true
 
@@ -68,13 +68,13 @@ func main() {
 	retry := make(chan bool)
 
 	//Retry connection check periods
-	minutes := []int{5,10,15,30,60}
+	minutes := []int{5, 10, 15, 30, 60}
 	minIndex := 0
 
 	//Read from tweets stream
 	r := bufio.NewReader(resp.Body)
 	var line []byte
-	
+
 	//Process tweets forever
 	for {
 		//Read one tweet
@@ -85,7 +85,7 @@ func main() {
 		}
 
 		//Empty line
-		if bytes.Equal(line, []byte{13,10}) {
+		if bytes.Equal(line, []byte{13, 10}) {
 			continue
 		}
 
@@ -101,24 +101,24 @@ func main() {
 
 		//Watch channels
 		select {
-			//Check if we've received an error from a goroutine
-			//Triggered by goroutines that are blocked access by Twitter when creating a fav or when an unknown error happens
-			case <-errch:
-				checkError(tweet, client, &canFav, retry, once)
+		//Check if we've received an error from a goroutine
+		//Triggered by goroutines that are blocked access by Twitter when creating a fav or when an unknown error happens
+		case <-errch:
+			checkError(tweet, client, &canFav, retry, once)
 
-			//Retry connection check
-			case <-retry:
-				canFav, minIndex = retryCheck(tweet, client, canFav, retry, minutes, minIndex)
-				//When access to the API is restored errch can be triggered again, hence the need of a new Once instance
-				if canFav {
-					once = new(sync.Once)
-					//Stats are restarted after recovering access
-					go countfavs(favch)
-				}
+		//Retry connection check
+		case <-retry:
+			canFav, minIndex = retryCheck(tweet, client, canFav, retry, minutes, minIndex)
+			//When access to the API is restored errch can be triggered again, hence the need of a new Once instance
+			if canFav {
+				once = new(sync.Once)
+				//Stats are restarted after recovering access
+				go countfavs(favch)
+			}
 
-			//Nothing to check, keep going
-			default:
-				break
+		//Nothing to check, keep going
+		default:
+			break
 		}
 
 		//Process tweet

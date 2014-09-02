@@ -1,20 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"log"
-	"encoding/json"
 )
 
+//Config file structure
 type Config struct {
-	APIKey string
-	APISecret string
-	AccessToken string
+	APIKey            string
+	APISecret         string
+	AccessToken       string
 	AccessTokenSecret string
-	Words string
+	Words             string
 }
 
-func loadConfig() (*Config){
+//Load configuration
+func loadConfig() *Config {
 	data, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		log.Fatal("Error while trying to read file: ", err)
