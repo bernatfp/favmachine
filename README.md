@@ -23,7 +23,10 @@ Dependencies: Go. *If you don't have Go installed on your computer, [start here]
 4. By now, you must have an API key, an API secret, an Access token and an Access token secret.
 5. Store these 4 keys in a configuration file. There's an example configuration file at `$GOPATH/src/github.com/bernatfp/favmachine/config.json`.
 6. On the `words` field of your configuration file, write the keywords or phrases you want to track separated by comma. Any tweet that contains any of these will be favorited.
-7. That's it! By now, your configuration file should have the following structure:
+7. That's it! 
+
+By now, your configuration file should look like this:
+
 ´´´
 {
 	"APIKey": "your-api-key",
