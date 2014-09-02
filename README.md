@@ -4,14 +4,16 @@
 
 Too busy for running your own Twitter account and too cheap to hire a Community Manager? Let Fav Machine do some work for you.
 
-Fav Machine is a tool I've written to help increase awareness of [Calloud](https://calloud.com), through massively favoriting tweets that talk about keywords related to it. So far, it's worked as a nice way to increase my follower base and to acquire drive more traffic to Calloud's website.
+Fav Machine is a tool I've written to help increase awareness of [Calloud](https://calloud.com), through massively favoriting tweets that talk about keywords related to it. So far, it's worked quite well as a way to increase Calloud's follower base and to acquire drive more traffic to Calloud's website.
+
+You might want to use it if you want more people in your market niche to find out about you. You just need to setup a good combination of keywords to track.
 
 ##Install
 
-Dependencies: Go. *If you don't have Go installed on your computer, [start here](http://golang.org/doc/install)*
+Dependencies: Go. *If you don't have Go installed on your computer, [start here](http://golang.org/doc/install).*
 
-1. Run `go get github.com/bernatfp/favmachine`
-2. There's no second step
+1. Run `go get github.com/bernatfp/favmachine`.
+2. There's no second step.
 
 ##Configure
 
@@ -21,6 +23,16 @@ Dependencies: Go. *If you don't have Go installed on your computer, [start here]
 4. By now, you must have an API key, an API secret, an Access token and an Access token secret.
 5. Store these 4 keys in a configuration file. There's an example configuration file at `$GOPATH/src/github.com/bernatfp/favmachine/config.json`.
 6. On the `words` field of your configuration file, write the keywords or phrases you want to track separated by comma. Any tweet that contains any of these will be favorited.
+7. That's it! By now, your configuration file should have the following structure:
+´´´
+{
+	"APIKey": "your-api-key",
+	"APISecret": "your-api-secret",
+	"accessToken": "your-access-token",
+	"accessTokenSecret": "your-access-token-secret",
+	"words": "some, comma, separated, words, or even phrases"
+}
+´´´
 
 ##Usage
 
