@@ -2,7 +2,7 @@
 
 ##About
 
-Too busy for running your own Twitter account and too cheap to hire a Community Manager? Let Fav Machine do some work for you.
+Too busy for running your own Twitter account and too broke to hire a Community Manager? Let Fav Machine do some work for you.
 
 Fav Machine is a tool I've written to help increase awareness of [Calloud](https://calloud.com), through massively favoriting tweets that talk about keywords related to it. So far, it's worked quite well as a way to increase Calloud's follower base and to acquire drive more traffic to Calloud's website.
 

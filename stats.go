@@ -19,7 +19,7 @@ func printStats(favNum, failFav int, start time.Time) {
 }
 
 //Collects stats about favs sent
-func countfavs(favch <-chan int) {
+func countfavs(statsch <-chan int, stopHours chan<- int) {
 
 	//Initialize counters and timer
 	favNum := 0
@@ -27,19 +27,31 @@ func countfavs(favch <-chan int) {
 	start := time.Now()
 
 	//Process info about favs sent
-	for fav := range favch {
+	for fav := range statsch {
 		switch fav {
 		//Fine
 		case 1:
 			favNum++
 
 		//Failed fav (RT, deleted tweet or such)
-		case 2, 3:
+		case 139, 34:
 			failFav++
 
-		//(Daily) Limit exceeded
-		case -1:
-			log.Println("Error, limit exceeded.")
+		//Suspended
+		case 64:
+			log.Println("Error, account suspended.")
+			printStats(favNum, failFav, start)
+			return
+
+		//Rate limit exceeded
+		case 88:
+			log.Println("Error, rate limit exceeded.")
+			printStats(favNum, failFav, start)
+			return
+
+		//Too many requests
+		case 429:
+			log.Println("Error, too many requests.")
 			printStats(favNum, failFav, start)
 			return
 
@@ -49,6 +61,18 @@ func countfavs(favch <-chan int) {
 			printStats(favNum, failFav, start)
 			return
 
+		}
+
+		log.Println("Total favs: ", favNum + failFav)
+
+		//To prevent being suspended, we stop execution for certain time when we've reached a reasonable limit 
+		//If enough time has passed (24h), we continue
+		if favNum + failFav == 1000 {
+			hours := time.Since(start).Hours()
+			if hours < 24.0 {
+				stopHours <- 24 - int(math.Ceil(hours))
+				return
+			}
 		}
 
 	}

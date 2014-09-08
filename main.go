@@ -8,6 +8,7 @@ import (
 	"github.com/mrjones/oauth"
 	"log"
 	"sync"
+	"time"
 )
 
 //Tweet structure
@@ -15,7 +16,7 @@ type Tweet struct {
 	Id   string `json:"id_str"`
 	Text string
 	User UserTwitter `json:"user"`
-	RT   RetweetData `json:"retweeted_status"`
+	Retweet   RetweetData `json:"retweeted_status"`
 }
 
 type UserTwitter struct {
@@ -52,8 +53,9 @@ func main() {
 	defer resp.Body.Close()
 
 	//Open a channel to count favs sent and print them
-	favch := make(chan int, 100)
-	go countfavs(favch)
+	statsch := make(chan int, 100)
+	stopHours := make(chan int)
+	go countfavs(statsch, stopHours)
 
 	//Create error reporting channel
 	errch := make(chan int)
@@ -68,7 +70,7 @@ func main() {
 	retry := make(chan bool)
 
 	//Retry connection check periods
-	minutes := []int{5, 10, 15, 30, 60}
+	minutes := []time.Duration{5, 10, 15, 30, 60}
 	minIndex := 0
 
 	//Read from tweets stream
@@ -94,35 +96,53 @@ func main() {
 		err = json.Unmarshal(line, tweet)
 		if err != nil {
 			log.Println("Error decoding JSON: ", err)
-			log.Println(string(line))
-			log.Println(line)
 			continue
 		}
 
 		//Watch channels
 		select {
-		//Check if we've received an error from a goroutine
-		//Triggered by goroutines that are blocked access by Twitter when creating a fav or when an unknown error happens
-		case <-errch:
-			checkError(tweet, client, &canFav, retry, once)
+			//Check if we've received an error from a goroutine
+			//Triggered by goroutines that are blocked access by Twitter when creating a fav or when an unknown error happens
+			case code := <-errch:
+				//This must be called only once even if multiple goroutines trigger an error
+				once.Do(func() {
+					//Account suspended
+					if code == 64 {
+						//Wait enough to let other goroutines print their stuff about this issue
+						//The goroutine reporting the error is responsible for terminating execution
+						time.Sleep(5 * time.Second)
+					}
+					
+					//Check connection
+					check(tweet, client, &canFav, retry)		
+					
+				})
 
-		//Retry connection check
-		case <-retry:
-			canFav, minIndex = retryCheck(tweet, client, canFav, retry, minutes, minIndex)
-			//When access to the API is restored errch can be triggered again, hence the need of a new Once instance
-			if canFav {
-				once = new(sync.Once)
-				//Stats are restarted after recovering access
-				go countfavs(favch)
-			}
+			//Retry connection check
+			case <-retry:
+				canFav, minIndex = retryCheck(tweet, client, canFav, retry, minutes, minIndex)
+				//When access to the API is restored errch can be triggered again, hence the need of a new Once instance
+				if canFav {
+					once = new(sync.Once)
+					//Stats are restarted after recovering access
+					go countfavs(statsch, stopHours)
+				}
 
-		//Nothing to check, keep going
-		default:
-			break
+			//Stop execution for 24h to prevent being suspended
+			case hours := <-stopHours:
+				canFav = false
+				time.AfterFunc(time.Duration(hours) * time.Hour, func(){
+					canFav = true
+					go countfavs(statsch, stopHours)
+				})
+
+			//Nothing to check, keep going
+			default:
+				break
 		}
 
 		//Process tweet
-		go tweetHandler(tweet, client, favch, errch, canFav)
+		go tweet.handler(client, statsch, errch, canFav)
 
 	}
 }
