@@ -83,7 +83,7 @@ func main() {
 		line, err = r.ReadBytes('\n')
 		if err != nil {
 			log.Println("Error reading buffer: ", err)
-			continue
+			return //Replaced continue bc if stream is lost it keeps attempting to read bytes FOREVER
 		}
 
 		//Empty line
@@ -131,6 +131,7 @@ func main() {
 			//Stop execution for 24h to prevent being suspended
 			case hours := <-stopHours:
 				canFav = false
+				log.Println("Can't continue. Going to wait for", hours, "hours.")
 				time.AfterFunc(time.Duration(hours) * time.Hour, func(){
 					canFav = true
 					go countfavs(statsch, stopHours)

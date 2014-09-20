@@ -34,7 +34,7 @@ func countfavs(statsch <-chan int, stopHours chan<- int) {
 			favNum++
 
 		//Failed fav (RT, deleted tweet or such)
-		case 139, 34:
+		case 139, 34, 136:
 			failFav++
 
 		//Suspended
@@ -46,6 +46,12 @@ func countfavs(statsch <-chan int, stopHours chan<- int) {
 		//Rate limit exceeded
 		case 88:
 			log.Println("Error, rate limit exceeded.")
+			printStats(favNum, failFav, start)
+			return
+
+		//Rate limit exceeded
+		case 130, 131:
+			log.Println("Error, Twitter is experiencing an internal error or is over capacity.")
 			printStats(favNum, failFav, start)
 			return
 
@@ -68,11 +74,13 @@ func countfavs(statsch <-chan int, stopHours chan<- int) {
 		//To prevent being suspended, we stop execution for certain time when we've reached a reasonable limit 
 		//If enough time has passed (24h), we continue
 		if favNum + failFav == 1000 {
+			log.Println("1000 favs limit reached, checking if we have to wait...")
 			hours := time.Since(start).Hours()
 			if hours < 24.0 {
 				stopHours <- 24 - int(math.Ceil(hours))
 				return
 			}
+			log.Println("Can continue.")
 		}
 
 	}

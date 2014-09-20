@@ -103,6 +103,8 @@ func (errData *ErrResponse) notifyChans(statsch chan<- int, errch chan<- int) {
 		log.Fatal("Your account has been suspended. To regain access log into your Twitter account, click on the red banner on top of the page and follow the steps to complete the process. ")
 	}
 
+	//If any of the following conditions are met, execution is temporarily stopped until favs can be created again
+	//
 	//Check if we've reached a limit
 	//Twitter Code 88 => Rate Limit Exceeded
 	if APICode == 88 {
@@ -117,12 +119,21 @@ func (errData *ErrResponse) notifyChans(statsch chan<- int, errch chan<- int) {
 		//Notify connection has to be rechecked (any value other than 64)
 		errch <- HTTPCode
 		return
-	}	
+	}
+	//HTTP 5XX
+	if APICode == 130 || APICode == 131 {
+		statsch <- APICode
+		//Notify connection has to be rechecked (any value other than 64)
+		errch <- APICode
+		return
+	}
+
+
 
 	//Check for other errors
 	switch APICode {
-		//Irrelevant errors => Already FAV or Tweet not found
-		case 139, 34:
+		//Irrelevant errors => Already FAV or Tweet not found or blocked by user x
+		case 139, 34, 136:
 			statsch <- APICode
 		//Unknown error
 		default:
