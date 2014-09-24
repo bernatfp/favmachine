@@ -42,7 +42,7 @@ func check(tweet *Tweet, client *oauth.Consumer, canFav *bool, retry chan<- bool
 }
 
 //Retry connection check (try to send a favorite again)
-func retryCheck(tweet *Tweet, client *oauth.Consumer, canFav bool, retry chan<- bool, minutes []time.Duration, minIndex int) (bool, int) {
+func retryCheck(tweet *Tweet, client *oauth.Consumer, canFav bool, retry chan<- bool, ns []time.Duration, minIndex int) (bool, int) {
 	log.Println("Checking again...")
 
 	//Test connection again
@@ -56,14 +56,14 @@ func retryCheck(tweet *Tweet, client *oauth.Consumer, canFav bool, retry chan<- 
 		canFav = false
 
 		//Send retry message after period
-		time.AfterFunc(minutes[minIndex] * time.Minute, func() {
+		time.AfterFunc(ns[minIndex] * time.Minute, func() {
 			retry <- true
 		})
 
-		log.Println("Still banned from creating favorites. Going to retry in", minutes[minIndex], "minutes.")
+		log.Println("Still banned from creating favorites. Going to retry in", ns[minIndex].Nanoseconds(), "minutes.")
 
 		//Increase period for next call
-		if minIndex < (len(minutes) - 1) {
+		if minIndex < (len(ns) - 1) {
 			minIndex++
 		}
 	}

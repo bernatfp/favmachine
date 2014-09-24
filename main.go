@@ -70,8 +70,8 @@ func main() {
 	retry := make(chan bool)
 
 	//Retry connection check periods
-	minutes := []time.Duration{5, 10, 15, 30, 60}
-	minIndex := 0
+	ns := []time.Duration{5, 10, 15, 30, 60} //By default the order of magnitude for Duration is nanoseconds
+	periodIndex := 0
 
 	//Read from tweets stream
 	r := bufio.NewReader(resp.Body)
@@ -120,7 +120,7 @@ func main() {
 
 			//Retry connection check
 			case <-retry:
-				canFav, minIndex = retryCheck(tweet, client, canFav, retry, minutes, minIndex)
+				canFav, periodIndex = retryCheck(tweet, client, canFav, retry, ns, periodIndex)
 				//When access to the API is restored errch can be triggered again, hence the need of a new Once instance
 				if canFav {
 					once = new(sync.Once)
