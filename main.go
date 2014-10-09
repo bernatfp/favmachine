@@ -36,17 +36,23 @@ var configPath = flag.String("c", "./config.json", "Indicates the path where the
 //Main function
 func main() {
 
+	log.Println("Welcome to favmachine \\o/")
+
 	//Parse flag and load configuration
 	flag.Parse()
 	config := loadConfig()
 
+	log.Println("Configuration loaded")
+
 	var waitTime time.Duration
 
 	for {
+		log.Println("Opening a new tweet stream")
 		waitTime = master(config)
 		if waitTime == -1 {
 			log.Fatal("Error reading stream, can't continue...")
 		}
+		log.Println("Closing stream. We're going to wait for", waitTime)
 		time.Sleep(waitTime)
 	}
 }
