@@ -40,6 +40,46 @@ func main() {
 	flag.Parse()
 	config := loadConfig()
 
+	var waitTime time.Duration
+
+	for {
+		waitTime = master(config)
+		if waitTime == -1 {
+			log.Fatal("Error reading stream, can't continue...")
+		}
+		time.Sleep(waitTime)
+	}
+}
+
+func getTweet(r *bufio.Reader) (*Tweet, error) {
+	//Read one tweet
+	line, err := r.ReadBytes('\n')
+	if err != nil {
+		log.Println("Error reading buffer: ", err)
+		return nil, err //Replaced continue bc if stream is lost it keeps attempting to read bytes FOREVER
+	}
+
+	//Empty line
+	if bytes.Equal(line, []byte{13, 10}) {
+		return nil, nil //just discard it, sometimes the stream sends rubbish
+	}
+
+	//Load data from tweet
+	tweet := &Tweet{}
+	err = json.Unmarshal(line, tweet)
+	if err != nil {
+		log.Println("Error decoding JSON: ", err)
+		return nil, nil //just discard it, sometimes the stream sends rubbish
+		//Idea: if it happens many times in a row, we can stop execution for a minute and open a new stream (by returning to main)
+	}
+
+	return tweet, nil
+
+}
+
+//Main function
+func master(config *Config) time.Duration {
+
 	//Register OAuth client and access token
 	client := oauth.NewConsumer(config.APIKey, config.APISecret, oauth.ServiceProvider{})
 	atoken = &oauth.AccessToken{config.AccessToken, config.AccessTokenSecret, map[string]string{}}
@@ -75,12 +115,23 @@ func main() {
 
 	//Read from tweets stream
 	r := bufio.NewReader(resp.Body)
-	var line []byte
+
+	//One test fav to check it works
+	tweet, err := getTweet(r)
+	if err != nil {
+		return -1
+	}
+	if tweet == nil {
+		return time.Duration(1) * time.Minute
+	}
+	if allowed, _ := testConn(tweet, client); allowed == false {
+		return time.Duration(1) * time.Hour
+	}
 
 	//Process tweets forever
 	for {
 		//Read one tweet
-		line, err = r.ReadBytes('\n')
+		/*line, err = r.ReadBytes('\n')
 		if err != nil {
 			log.Println("Error reading buffer: ", err)
 			return //Replaced continue bc if stream is lost it keeps attempting to read bytes FOREVER
@@ -97,6 +148,11 @@ func main() {
 		if err != nil {
 			log.Println("Error decoding JSON: ", err)
 			continue
+		}*/
+
+		tweet, err = getTweet(r)
+		if err != nil {
+			return -1
 		}
 
 		//Watch channels
@@ -106,7 +162,7 @@ func main() {
 			case code := <-errch:
 				//This must be called only once even if multiple goroutines trigger an error
 				once.Do(func() {
-					//Account suspended
+					//Account suspended, we'll terminate execution in a few seconds
 					if code == 64 {
 						//Wait enough to let other goroutines print their stuff about this issue
 						//The goroutine reporting the error is responsible for terminating execution
@@ -115,7 +171,8 @@ func main() {
 					
 					//Check connection
 					check(tweet, client, &canFav, retry)		
-					
+					//If connection is working again, execution will continue normally
+					//If we are still not allowed to do favs, <-retry will be triggered in one minute
 				})
 
 			//Retry connection check
@@ -126,16 +183,25 @@ func main() {
 					once = new(sync.Once)
 					//Stats are restarted after recovering access
 					go countfavs(statsch, stopHours)
+				} else {
+					//Once the period is 60 we consider it's not worth keeping the stream open (we've already been trying for an hour)
+					if ns[periodIndex] == time.Duration(60){
+						return 	ns[periodIndex] * time.Minute //1 hour
+					}		
 				}
+				
 
 			//Stop execution for 24h to prevent being suspended
 			case hours := <-stopHours:
 				canFav = false
 				log.Println("Can't continue. Going to wait for", hours, "hours.")
-				time.AfterFunc(time.Duration(hours) * time.Hour, func(){
+				
+				return time.Duration(hours) * time.Hour
+
+				/*time.AfterFunc(time.Duration(hours) * time.Hour, func(){
 					canFav = true
 					go countfavs(statsch, stopHours)
-				})
+				})*/
 
 			//Nothing to check, keep going
 			default:

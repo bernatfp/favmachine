@@ -6,8 +6,9 @@ import (
 	"time"
 )
 
+
 //Send a test fav
-func testConn(tweet *Tweet, client *oauth.Consumer) bool {
+func testConn(tweet *Tweet, client *oauth.Consumer) (bool, int) {
 	params := map[string]string{"id": tweet.Id}
 	resp, err := client.Post("https://api.twitter.com/1.1/favorites/create.json", params, atoken)
 	if err != nil {
@@ -15,20 +16,22 @@ func testConn(tweet *Tweet, client *oauth.Consumer) bool {
 		errData := new(ErrResponse)
 		errData.loadErrData(err)
 		//Check if the error is related to banned API access
-		if errData.HTTPErr.Code == 429 || errData.APIErr[0].Code == 88 {
-			return false
+		if errData.APIErr[0].Code > 0 {
+			return false, errData.APIErr[0].Code
+		} else {
+			return false, errData.HTTPErr.Code
 		}
 	}
 	defer resp.Body.Close()
 
-	return true
+	return true, 0
 }
 
 //Check whether Twitter has really banned us
 func check(tweet *Tweet, client *oauth.Consumer, canFav *bool, retry chan<- bool) {
 	log.Println("Looks like we've hit the limit. Trying one more time...")
 	//Try to send a fav
-	if testConn(tweet, client) {
+	if _, code := testConn(tweet, client); code != 429 && code != 88 { //We just check if we are banned because of surpassing the limit
 		*canFav = true
 	} else {
 		*canFav = false
@@ -46,7 +49,7 @@ func retryCheck(tweet *Tweet, client *oauth.Consumer, canFav bool, retry chan<- 
 	log.Println("Checking again...")
 
 	//Test connection again
-	if testConn(tweet, client) {
+	if _, code := testConn(tweet, client); code != 429 && code != 88 { //We just check if we are banned because of surpassing the limit
 		//Fav creation is allowed again, update parameters accordingly
 		canFav = true
 		periodIndex = 0
