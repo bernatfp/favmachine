@@ -125,12 +125,15 @@ func master(config *Config) time.Duration {
 	//One test fav to check it works
 	tweet, err := getTweet(r)
 	if err != nil {
+		close(statsch)
 		return -1
 	}
 	if tweet == nil {
+		close(statsch)
 		return time.Duration(1) * time.Minute
 	}
 	if allowed, _ := testConn(tweet, client); allowed == false {
+		close(statsch)
 		return time.Duration(1) * time.Hour
 	}
 
@@ -158,6 +161,7 @@ func master(config *Config) time.Duration {
 
 		tweet, err = getTweet(r)
 		if err != nil {
+			close(statsch)
 			return -1
 		}
 
@@ -192,6 +196,7 @@ func master(config *Config) time.Duration {
 				} else {
 					//Once the period is 60 we consider it's not worth keeping the stream open (we've already been trying for an hour)
 					if ns[periodIndex] == time.Duration(60){
+						close(statsch)
 						return 	ns[periodIndex] * time.Minute //1 hour
 					}		
 				}
@@ -201,7 +206,7 @@ func master(config *Config) time.Duration {
 			case hours := <-stopHours:
 				canFav = false
 				log.Println("Can't continue. Going to wait for", hours, "hours.")
-				
+				close(statsch)
 				return time.Duration(hours) * time.Hour
 
 				/*time.AfterFunc(time.Duration(hours) * time.Hour, func(){
