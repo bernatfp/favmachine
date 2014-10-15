@@ -13,7 +13,7 @@ import (
 
 //Tweet structure
 type Tweet struct {
-	Id   string `json:"id_str"`
+	Id   uint64 `json:"id"`
 	Text string
 	User UserTwitter `json:"user"`
 	Retweet   RetweetData `json:"retweeted_status"`
@@ -57,29 +57,34 @@ func main() {
 	}
 }
 
-func getTweet(r *bufio.Reader) (*Tweet, error) {
+//func getTweet(r *bufio.Reader) (*Tweet, error) {
+func getTweet(r *bufio.Reader, tweet *Tweet) (error) {
 	//Read one tweet
 	line, err := r.ReadBytes('\n')
 	if err != nil {
 		log.Println("Error reading buffer: ", err)
-		return nil, err //Replaced continue bc if stream is lost it keeps attempting to read bytes FOREVER
+		//return nil, err //Replaced continue bc if stream is lost it keeps attempting to read bytes FOREVER
+		return err
 	}
 
 	//Empty line
 	if bytes.Equal(line, []byte{13, 10}) {
-		return nil, nil //just discard it, sometimes the stream sends rubbish
+		//return nil, nil //just discard it, sometimes the stream sends rubbish
+		return nil
 	}
 
 	//Load data from tweet
-	tweet := &Tweet{}
+	//tweet := &Tweet{}
 	err = json.Unmarshal(line, tweet)
 	if err != nil {
 		log.Println("Error decoding JSON: ", err)
-		return nil, nil //just discard it, sometimes the stream sends rubbish
+		//return nil, nil //just discard it, sometimes the stream sends rubbish
+		return nil
 		//Idea: if it happens many times in a row, we can stop execution for a minute and open a new stream (by returning to main)
 	}
 
-	return tweet, nil
+	//return tweet, nil
+	return nil
 
 }
 
@@ -123,7 +128,9 @@ func master(config *Config) time.Duration {
 	r := bufio.NewReader(resp.Body)
 
 	//One test fav to check it works
-	tweet, err := getTweet(r)
+	tweet := &Tweet{}
+	err = getTweet(r, tweet)
+	//tweet, err := getTweet(r)
 	if err != nil {
 		close(statsch)
 		return -1
@@ -159,7 +166,9 @@ func master(config *Config) time.Duration {
 			continue
 		}*/
 
-		tweet, err = getTweet(r)
+		tweet := &Tweet{}
+		err := getTweet(r, tweet)
+		//tweet, err := getTweet(r)
 		if err != nil {
 			close(statsch)
 			return -1
@@ -182,6 +191,10 @@ func master(config *Config) time.Duration {
 					//Check connection
 					check(tweet, client, &canFav, retry)		
 					//If connection is working again, execution will continue normally
+					//So, we have to check stats again
+					if canFav == true {
+						go countfavs(statsch, stopHours)
+					}
 					//If we are still not allowed to do favs, <-retry will be triggered in one minute
 				})
 

@@ -4,14 +4,16 @@ import (
 	"github.com/mrjones/oauth"
 	"log"
 	"time"
+	"strconv"
 )
 
 
 //Send a test fav
 func testConn(tweet *Tweet, client *oauth.Consumer) (bool, int) {
-	params := map[string]string{"id": tweet.Id}
+	params := map[string]string{"id": strconv.FormatUint(tweet.Id, 10)}
 	resp, err := client.Post("https://api.twitter.com/1.1/favorites/create.json", params, atoken)
 	if err != nil {
+		log.Println("Error sending test FAV ", err)
 		//Parse err data into struct
 		errData := new(ErrResponse)
 		errData.loadErrData(err)

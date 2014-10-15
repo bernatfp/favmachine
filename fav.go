@@ -3,11 +3,12 @@ package main
 import (
 	"github.com/mrjones/oauth"
 	"log"
+	"strconv"
 )
 
 //Create a FAV
 func (tweet *Tweet) fav(client *oauth.Consumer, statsch chan<- int, errch chan<- int) {
-	params := map[string]string{"id": tweet.Id}
+	params := map[string]string{"id": strconv.FormatUint(tweet.Id, 10)}
 	resp, err := client.Post("https://api.twitter.com/1.1/favorites/create.json", params, atoken)
 	if err != nil {
 		log.Println("Error sending FAV ", err)

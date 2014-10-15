@@ -33,7 +33,7 @@ func countfavs(statsch <-chan int, stopHours chan<- int) {
 		case 1:
 			favNum++
 
-		//Failed fav (RT, deleted tweet or such)
+		//Failed fav (RT, deleted tweet or such), not critical
 		case 139, 34, 136:
 			failFav++
 
@@ -49,7 +49,7 @@ func countfavs(statsch <-chan int, stopHours chan<- int) {
 			printStats(favNum, failFav, start)
 			return
 
-		//Rate limit exceeded
+		//HTTP 5XX are associated to these API errors
 		case 130, 131:
 			log.Println("Error, Twitter is experiencing an internal error or is over capacity.")
 			printStats(favNum, failFav, start)
