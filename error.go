@@ -53,7 +53,7 @@ func (errStruct *ErrResponse) LoadHTTPErr(errStr string){
 	//Parse Code and Message
 	sep := "Response Status: '"
 	start := strings.Index(errStr, sep) + len(sep)
-	if start == -1 {
+	if start - len(sep) == -1 {
 		errStruct.HTTPErr.Code = -1
 		errStruct.HTTPErr.Message = "No HTTP status attached to response"
 		return
